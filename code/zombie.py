@@ -366,6 +366,8 @@ new_save_input = ["", ""]  # [name, difficulty]
 
 menu_button_rects = []
 
+score = 0  # player score
+
 # try load save at start
 if (loaded_profile := load_save_file()):
     apply_save_profile(loaded_profile)
@@ -505,6 +507,28 @@ while running:
         pygame.display.flip()
         continue
 
+    # ================= GAME OVER =================
+    elif game_state == "game_over":
+        for event in events:
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN:
+                    # Delete the save file
+                    if SAVE_FILE_PATH.exists():
+                        SAVE_FILE_PATH.unlink()
+                    
+                    score = 0  # reset score
+                    game_state = "menu"
+                    menu_message = "Game Over! Save deleted."
+
+        # Draw screen
+        screen.fill((10, 14, 24))
+        draw_centered_text(screen, "YOU DIED", window_height // 2 - 80, (220, 50, 50), FONTS["title"])
+        draw_centered_text(screen, f"Final Score: {score}", window_height // 2 - 20, (255, 200, 100), FONTS["menu"])
+        draw_centered_text(screen, f"Difficulty: {selected_difficulty}", window_height // 2 + 20, (245, 215, 120), FONTS["menu"])
+        draw_centered_text(screen, "Press ENTER or ESC to return to menu", window_height // 2 + 80, (180, 180, 180), FONTS["small"])
+        pygame.display.flip()
+        continue
+
     # ================= GAMEPLAY =================
 
     # reduce cooldown timers every frame
@@ -582,7 +606,10 @@ while running:
         if bullet["life"] <= 0 or hit:
             bullets.remove(bullet)
 
-    # remove dead enemies
+    # add score for each enemy defeated (5 points * difficulty)
+    for enemy in enemies:
+        if enemy["health"] <= 0:
+            score += 5 * selected_difficulty
     enemies[:] = [e for e in enemies if e["health"] > 0]
 
     # ---------- PLAYER DAMAGE ----------
@@ -630,6 +657,9 @@ while running:
     # ---------- UI ----------
     screen.blit(FONTS["small"].render(f"Player: {current_player_name}", True, (225, 225, 225)), (12, 12))
     screen.blit(FONTS["small"].render(f"Difficulty: {selected_difficulty}", True, (245, 215, 120)), (12, 36))
+    
+    # display score (ERROR: 'difficult' is not defined, should be 'selected_difficulty')
+    screen.blit(FONTS["small"].render(f"Score: {score}", True, (255, 200, 100)), (12, 60))
 
     # health text
     hl = FONTS["small"].render(
